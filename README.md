@@ -10,6 +10,15 @@ Data::Cube - It's new $module
 
 Data::Cube is ...
 
+## METHODS
+
+
+
+    my $cube = new Data::Cube();
+    $cube->slide();
+    $cube->dice();
+    $cube->rollup();
+
 # LICENSE
 
 Copyright (C) muddydixon.

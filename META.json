@@ -4,7 +4,7 @@
       "muddydixon <muddydixon@gmail.com>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Minilla/v0.3.2, CPAN::Meta::Converter version 2.130880",
+   "generated_by" : "Minilla/v0.6.5, CPAN::Meta::Converter version 2.130880",
    "license" : [
       "perl_5"
    ],
@@ -37,11 +37,12 @@
             "Test::CPAN::Meta" : "0",
             "Test::MinimumVersion" : "0.10108",
             "Test::Pod" : "1.41",
-            "Test::Spellunker" : "v0.2.2"
+            "Test::Spellunker" : "v0.2.7"
          }
       },
       "runtime" : {
          "requires" : {
+            "Data::Nest" : "0.02",
             "perl" : "5.008005"
          }
       },
