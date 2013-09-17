@@ -6,7 +6,7 @@
    "dynamic_config" : 0,
    "generated_by" : "Minilla/v0.6.5, CPAN::Meta::Converter version 2.130880",
    "license" : [
-      "perl_5"
+      "unknown"
    ],
    "meta-spec" : {
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
@@ -42,7 +42,8 @@
       },
       "runtime" : {
          "requires" : {
-            "Data::Nest" : "0.02",
+            "Data::Nest" : "0.03",
+            "Scalar::Util" : "0",
             "perl" : "5.008005"
          }
       },
@@ -53,5 +54,16 @@
       }
    },
    "release_status" : "unstable",
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/muddydixon/data-cube/issues"
+      },
+      "homepage" : "https://github.com/muddydixon/data-cube",
+      "repository" : {
+         "type" : "git",
+         "url" : "git://github.com/muddydixon/data-cube.git",
+         "web" : "https://github.com/muddydixon/data-cube"
+      }
+   },
    "version" : "0.01"
 }

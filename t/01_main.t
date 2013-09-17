@@ -5,9 +5,9 @@ use Data::Dumper;
 
 use Data::Cube;
 
-my $cube = new Data::Cube("Country", "Product");
-
+my @records;
 my @header = split /\s+/, (<DATA>);
+my %distincts;
 while(<DATA>){
     chomp;
     my @data = split(/\s+/, $_);
@@ -15,38 +15,186 @@ while(<DATA>){
     foreach my $attr (@header) {
         if($attr !~ /^\s*$/){
             $obj{$attr} = shift @data;
+            $distincts{$attr} = {} unless exists $distincts{$attr};
+            $distincts{$attr}{$obj{$attr}} = 0 unless exists $distincts{$attr}{$obj{$attr}};
+            $distincts{$attr}{$obj{$attr}}++;
         }else{
             shift @data;
         }
     }
-    $cube->put(\%obj);
+    push @records, \%obj;
 }
 
-$cube->add_hierarchy("Date", "Month",
-                     sub {
-                         my $d = shift;
-                         if($d =~ /^(\d+)\/(\d+)\/(\d+)$/){
-                             my ($m, $d, $Y) = ($1, $2, $3);
-                             return "$Y/$m";
-                         }
-                         undef;
-                     });
+############################################################
 
-$cube->add_hierarchy("Month", "Year",
-                     sub {
-                         my $d = shift;
-                         if($d =~ /^(\d+)\/(\d+)$/){
-                             my ($Y, $m) = ($1, $2);
-                             return "$Y";
-                         }
-                         undef;
-                     });
-$cube->measure("totalUnit", sub {my ($sum, @data) = (0, @_); foreach my $d (@data){ $sum += $d->{Units};} $sum; });
-warn Dumper $cube->slice("Product", "Pencil");
+# instance
+sub instance_test {
+    my $cube = new Data::Cube();
+    is_deeply $cube->{dims}, [], "not set dimension";
+    is_deeply $cube->{currentdims}, [], "not set current dimension";
+    is scalar keys %{$cube->{measures}}, 1, "set default measure";
 
 
-ok 1;
+    $cube = new Data::Cube("Country", "Product");
+    is_deeply $cube->{dims}, ["Country", "Product"], "set dimension";
+    is_deeply $cube->{currentdims}, ["Country", "Product"], "set current dimension";
 
+    my $subcube = $cube->clone();
+    is_deeply $subcube->{dims}, ["Country", "Product"], "set dimension of cloned cube";
+    is_deeply $subcube->{currentdims}, ["Country", "Product"], "set current dimension of cloned cube";
+}
+instance_test();
+
+sub utils_test {
+    my $cube = new Data::Cube();
+    is $cube->is_same(1, 1), 1, "compare number 1, 1";
+    is $cube->is_same(1, 3), 0, "compare number 1, 2";
+    is $cube->is_same("hoge", "hoge"), 1, "compare number hoge, hoge";
+    is $cube->is_same("hoge", "hogege"), 0, "compare number hoge, hogege";
+    is $cube->is_same(1, "1"), 1, "compare 1, '1'";
+    is $cube->is_same("1", 1), 1, "compare '1', 1";
+
+    is $cube->recordFilter({x => 1}, {x => 1}), 1, "filter {x => 1}, {x => 1}";
+    is $cube->recordFilter({x => 1}, {x => 2}), 0, "filter {x => 1}, {x => 2}";
+    is $cube->recordFilter({x => "1"}, {x => 1}), 1, "filter {x => '1'}, {x => 1}";
+    is $cube->recordFilter({x => [1, 3]}, {x => 1}), 1, "filter {x => [1, 3]}, {x => 1}";
+    is $cube->recordFilter({x => sub {my $x = shift; $x > 0}}, {x => 1}), 1, "filter {x => [1, 3]}, {x => 1}";
+}
+utils_test();
+
+sub dimension_test {
+    my $cube = new Data::Cube("Country", "Product");
+    $cube->add_dimension("SalesPerson");
+    is_deeply $cube->{dims}, ["Country", "Product", "SalesPerson"], "add dimension";
+    is_deeply $cube->{currentdims}, ["Country", "Product", "SalesPerson"], "add current dimension";
+
+    $cube->remove_dimension("Product");
+    is_deeply $cube->{dims}, ["Country", "SalesPerson"], "remove dimension";
+    is_deeply $cube->{currentdims}, ["Country", "SalesPerson"], "remove current dimension";
+
+    $cube->get_dimension();
+    $cube->get_current_dimension();
+    # $cube->reorder_dimension(["SalesPerson", "Country"]);
+    # is_deeply $cube->{dims}, ["SalesPerson", "Country"];
+    # is_deeply $cube->{currentdims}, ["SalesPerson", "Country"];
+}
+dimension_test();
+
+sub put_test {
+    my $cube = new Data::Cube("Country", "Product");
+    is scalar @{$cube->{records}}, 0, "initial record number";
+    $cube->put($records[0]);
+    is scalar @{$cube->{records}}, 1, "record number after put";
+    $cube->put($records[2], $records[3], $records[4]);
+    is scalar @{$cube->{records}}, 4, "record number after bulk put";
+    $cube->put([@records[5..8]]);
+    is scalar @{$cube->{records}}, 8, "record number after array ref put";
+}
+
+put_test();
+
+sub measure_test {
+    my $cube = new Data::Cube("Country", "Product");
+    $cube->add_measure("sum", sub {});
+    ok exists $cube->{measures}{"sum"}, "add measure";
+}
+measure_test();
+
+sub rollup_test {
+    my $cube = new Data::Cube("Country", "Product");
+    $cube->put([@records]);
+
+    is_deeply $cube->get_dimension_component(), {}, "get_dimension_component with no args";
+    is_deeply $cube->get_dimension_component("Country"), $distincts{"Country"}, "get_dimension_component with \"Country\"";
+    is_deeply $cube->get_dimension_component("Product"), $distincts{"Product"}, "get_dimension_component with \"Product\"";
+    my $results = $cube->rollup();
+    for my $entry_first (@$results){
+        ok exists $distincts{"Country"}->{$entry_first->{dim}}, "check first dimension";
+        for my $entry_second (@{$entry_first->{values}}){
+            ok exists $distincts{"Product"}->{$entry_second->{dim}}, "check second dimension";
+            ok exists $entry_second->{count}, "has measure \"count\"";
+        }
+    }
+
+    $cube->add_measure("sumUnits", sub { my $sum = 0; foreach my $d (@_){ $sum += $d->{Units}; } $sum; });
+
+    $results = $cube->rollup();
+    for my $entry_first (@$results){
+        for my $entry_second (@{$entry_first->{values}}){
+            ok exists $entry_second->{sumUnits}, "has measure \"sumUnits\"";
+        }
+    }
+}
+rollup_test();
+
+sub hierarchy_test {
+    my $cube = new Data::Cube("Country", "Product");
+
+    $cube->put([@records]);
+    $cube->add_hierarchy("SalesPerson", "Country");
+
+    is $cube->{hiers}{"Country"}, "SalesPerson", "add hierarchy";
+    is $cube->{invHiers}{"SalesPerson"}, "Country", "add hierarchy";
+
+    my $fromDateToMonth = sub {
+        my $d = shift;
+        if($d =~ /^(\d+)\/(\d+)\/(\d+)$/){
+            my ($m, $d, $Y) = ($1, $2, $3);
+            return "$Y/$m";
+        }
+        undef;
+    };
+    $cube->add_hierarchy("Date", "Month", $fromDateToMonth);
+
+    is $cube->{hiers}{"Month"}, "Date", "add hierarchy";
+    is $cube->{invHiers}{"Date"}, "Month", "add hierarchy";
+
+    for my $record (@{$cube->{records}}){
+        is $fromDateToMonth->($record->{Date}), $record->{Month}, "rollup new measure";
+    }
+
+    $cube->drilldown("Country");
+    is_deeply $cube->{currentdims}, ["SalesPerson", "Product"];
+    my $results = $cube->rollup();
+
+    foreach my $result (@$results){
+        ok exists $distincts{"SalesPerson"}{$result->{dim}}, "rolluped results";
+    }
+
+    $cube->drillup("Country");
+    is_deeply $cube->{currentdims}, ["SalesPerson", "Product"];
+    $results = $cube->rollup();
+
+    foreach my $result (@$results){
+        ok exists $distincts{"SalesPerson"}{$result->{dim}}, "rolluped results";
+    }
+}
+hierarchy_test();
+
+sub dice_test {
+    my %UKPencilSalesPerson = ("Jardine" => 2, "Morgan" => 1);
+    my $cube = new Data::Cube("Country", "Product");
+    $cube->add_hierarchy("SalesPerson", "Country");
+    $cube->put([@records]);
+
+    my $subcube = $cube->dice(Country => "UK", Product => "Pencil");
+    my $results = $subcube->drilldown("Country")->rollup();
+
+    for my $result (@{$results}){
+        ok exists $UKPencilSalesPerson{$result->{dim}}, "uk pencil";
+    }
+}
+dice_test();
+
+sub slice_test {
+    my $cube = new Data::Cube("Country", "Product");
+    $cube->add_hierarchy("SalesPerson", "Country");
+    $cube->put([@records]);
+
+    my $slice = $cube->slice("Country" => "US");
+    ok $slice->{dim} eq "US", "slice test: dim matches sliceed dim";
+}
+slice_test();
 
 done_testing;
 
