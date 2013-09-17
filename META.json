@@ -56,13 +56,13 @@
    "release_status" : "unstable",
    "resources" : {
       "bugtracker" : {
-         "web" : "https://github.com/muddydixon/data-cube/issues"
+         "web" : "https://github.com/muddydixon/Data-Cube/issues"
       },
-      "homepage" : "https://github.com/muddydixon/data-cube",
+      "homepage" : "https://github.com/muddydixon/Data-Cube",
       "repository" : {
          "type" : "git",
-         "url" : "git://github.com/muddydixon/data-cube.git",
-         "web" : "https://github.com/muddydixon/data-cube"
+         "url" : "git://github.com/muddydixon/Data-Cube.git",
+         "web" : "https://github.com/muddydixon/Data-Cube"
       }
    },
    "version" : "0.01"

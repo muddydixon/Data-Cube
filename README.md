@@ -10,7 +10,8 @@ Data::Cube - It's new $module
 
 # DESCRIPTION
 
-Data::Cube is ...
+Data::Cube is perl implementation of \[DataCube\](http://en.wikipedia.org/wiki/OLAP\_cube).
+DataCube is concept in order to process multidimensional data array.
 
 ## METHODS
 
