@@ -42,7 +42,7 @@
       },
       "runtime" : {
          "requires" : {
-            "Data::Nest" : "0.03",
+            "Data::Nest" : "0.04",
             "Scalar::Util" : "0",
             "perl" : "5.008005"
          }

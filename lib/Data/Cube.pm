@@ -7,7 +7,7 @@ use Data::Dumper;
 use Data::Nest;
 use Scalar::Util qw/looks_like_number/;
 
-our $VERSION = "0.01";
+our $VERSION = "0.02";
 
 sub new {
     my $self = shift;
@@ -261,14 +261,11 @@ sub dice {
 # すべてのセルで演算を行う
 sub rollup {
     my $self = shift;
-    my @dims = @_;
+    my %opt = @_;
 
     my @Dims = @{$self->{currentdims}};
-    if(scalar @dims > 0){
-        @Dims = @dims;
-    }
 
-    my $nest = new Data::Nest();
+    my $nest = new Data::Nest(%opt);
     foreach my $dim (@Dims){
         $nest->key($dim);
     }

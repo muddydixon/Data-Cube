@@ -124,6 +124,14 @@ sub rollup_test {
             ok exists $entry_second->{sumUnits}, "has measure \"sumUnits\"";
         }
     }
+
+    $results = $cube->rollup(noValues => 1);
+    for my $entry_first (@$results){
+        for my $entry_second (@{$entry_first->{values}}){
+            ok exists $entry_second->{sumUnits}, "has measure \"sumUnits\"";
+            ok !exists $entry_second->{values}, "has no values";
+        }
+    }
 }
 rollup_test();
 
